@@ -191,11 +191,90 @@ struct {
 
 #define C(x)  ((x)-'@')  // Control-x
 
+#define MAX_MEMORY 5
+
+typedef struct
+{
+  char *PervCmd [MAX_MEMORY];
+  int mem_count;
+  int cursor;
+  int size[MAX_MEMORY];
+} History;
+
+History history = {
+  .mem_count = 0,
+  .cursor = 0
+};
+
+
+void
+InsertNewCmd()
+{
+    int i = input.w , temp_cur = history.mem_count % 5;
+    int j = 0;
+    char temp[MAX_MEMORY][INPUT_BUF];
+    memset(temp[temp_cur] ,'\0' ,INPUT_BUF * sizeof(char));
+    while( i != (input.e - 1)){
+                  temp[temp_cur][j] = input.buf[i];
+                  j++;
+                  i = (i + 1) % INPUT_BUF;
+                }
+    for(int i = 4 ; i > 0 ; i--){
+      history.PervCmd[i] = history.PervCmd[i-1];
+      history.size[i] = history.size[i-1];
+      }
+  
+    history.PervCmd[0] = temp[temp_cur];
+    history.size[0] = j;
+}
+
+void
+killLine()
+{
+  while(input.e != input.w &&
+            input.buf[(input.e-1) % INPUT_BUF] != '\n'){
+        input.e--;
+        consputc(BACKSPACE);
+      }
+}
+
+void
+fillBuf()
+{
+  for(int i = 0; i < history.size[history.cursor] ; i++)
+        input.buf[input.e++] = history.PervCmd[history.cursor][i];
+}
+
+void
+IncCursor()
+{
+  history.cursor = (history.cursor + 1) % 5;
+      if ( history.cursor == history.mem_count) 
+        history.cursor = history.mem_count - 1;
+}
+
+void
+DecCursor()
+{
+  history.cursor = history.cursor - 1;
+  if (history.cursor < 0)
+    history.cursor = 4;
+}
+
+void
+printInput()
+{
+  int i = input.w;
+      while( i != input.e){ 
+        consputc(input.buf[i]);
+        i = (i + 1) % INPUT_BUF;
+      }
+}
+
 void
 consoleintr(int (*getc)(void))
 {
   int c, doprocdump = 0;
-
   acquire(&cons.lock);
   while((c = getc()) >= 0){
     switch(c){
@@ -204,11 +283,7 @@ consoleintr(int (*getc)(void))
       doprocdump = 1;
       break;
     case C('U'):  // Kill line.
-      while(input.e != input.w &&
-            input.buf[(input.e-1) % INPUT_BUF] != '\n'){
-        input.e--;
-        consputc(BACKSPACE);
-      }
+      killLine();
       break;
     case C('H'): case '\x7f':  // Backspace
       if(input.e != input.w){
@@ -218,11 +293,25 @@ consoleintr(int (*getc)(void))
       break;
     
     case (KEY_UP) :
-      while(input.e != input.w &&
-            input.buf[(input.e-1) % INPUT_BUF] != '\n'){
-        input.e--;
-        consputc(BACKSPACE);
-      }
+      if ( history.mem_count == 0) 
+          break;
+
+      killLine();
+      fillBuf();    
+      IncCursor();
+      printInput();
+
+      break;
+    
+    case (KEY_DN) :
+      if ( history.mem_count == 0) 
+          break;
+
+      killLine();
+      DecCursor();
+      fillBuf();    
+      printInput();
+      
       break;
     default:
       if(c != 0 && input.e-input.r < INPUT_BUF){
@@ -230,6 +319,8 @@ consoleintr(int (*getc)(void))
         input.buf[input.e++ % INPUT_BUF] = c;
         consputc(c);
         if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){
+          InsertNewCmd();
+          history.mem_count++;
           input.w = input.e;
           wakeup(&input.r);
         }
