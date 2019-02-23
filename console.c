@@ -211,7 +211,7 @@ char temp_buf[MAX_MEMORY][INPUT_BUF];
 void
 InsertNewCmd()
 {
-    int i = input.w , temp_cur = history.cmd_count % 5;
+    int i = input.w % INPUT_BUF , temp_cur = history.cmd_count % 5;
     int j = 0;
     memset(temp_buf[temp_cur] ,'\0' ,INPUT_BUF * sizeof(char));
     while( i != ((input.e - 1)%INPUT_BUF)){
@@ -269,7 +269,7 @@ DecCursor()
 void
 printInput()
 {
-  int i = input.w;
+  int i = input.w % INPUT_BUF;
   while( i != (input.e % INPUT_BUF)){ 
     consputc(input.buf[i]);
     i = (i + 1) % INPUT_BUF;
