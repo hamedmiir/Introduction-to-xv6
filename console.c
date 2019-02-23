@@ -196,26 +196,26 @@ struct {
 typedef struct
 {
   char *PervCmd [MAX_MEMORY];
-  int mem_count;
+  int cmd_count;
   int cursor;
   int size[MAX_MEMORY];
 } History;
 
 History history = {
-  .mem_count = 0,
+  .cmd_count = 0,
   .cursor = 0
 };
 
+char temp_buf[MAX_MEMORY][INPUT_BUF];
 
 void
 InsertNewCmd()
 {
-    int i = input.w , temp_cur = history.mem_count % 5;
+    int i = input.w , temp_cur = history.cmd_count % 5;
     int j = 0;
-    char temp[MAX_MEMORY][INPUT_BUF];
-    memset(temp[temp_cur] ,'\0' ,INPUT_BUF * sizeof(char));
-    while( i != (input.e - 1)){
-                  temp[temp_cur][j] = input.buf[i];
+    memset(temp_buf[temp_cur] ,'\0' ,INPUT_BUF * sizeof(char));
+    while( i != ((input.e - 1)%INPUT_BUF)){
+                  temp_buf[temp_cur][j] = input.buf[i];
                   j++;
                   i = (i + 1) % INPUT_BUF;
                 }
@@ -223,8 +223,8 @@ InsertNewCmd()
       history.PervCmd[i] = history.PervCmd[i-1];
       history.size[i] = history.size[i-1];
       }
-  
-    history.PervCmd[0] = temp[temp_cur];
+
+    history.PervCmd[0] = temp_buf[temp_cur];
     history.size[0] = j;
 }
 
@@ -241,34 +241,61 @@ killLine()
 void
 fillBuf()
 {
+  killLine();
   for(int i = 0; i < history.size[history.cursor] ; i++)
-        input.buf[input.e++] = history.PervCmd[history.cursor][i];
+    input.buf[input.e++ % INPUT_BUF] = history.PervCmd[history.cursor][i];
 }
 
 void
 IncCursor()
 {
+  if (history.cursor == 4)
+        return;
   history.cursor = (history.cursor + 1) % 5;
-      if ( history.cursor == history.mem_count) 
-        history.cursor = history.mem_count - 1;
+      if ( history.cursor == history.cmd_count) 
+        history.cursor = history.cmd_count - 1;
 }
 
 void
 DecCursor()
 {
+  if ( history.cursor <= 0){
+      history.cursor = 0;
+      return;
+      }
   history.cursor = history.cursor - 1;
-  if (history.cursor < 0)
-    history.cursor = 4;
 }
 
 void
 printInput()
 {
   int i = input.w;
-      while( i != input.e){ 
-        consputc(input.buf[i]);
-        i = (i + 1) % INPUT_BUF;
-      }
+  while( i != (input.e % INPUT_BUF)){ 
+    consputc(input.buf[i]);
+    i = (i + 1) % INPUT_BUF;
+  }
+}
+
+void
+KeyUpPressed()
+{
+  if ( history.cmd_count == 0) 
+      return;
+
+  IncCursor();
+  fillBuf();
+  printInput();
+}
+
+void
+KeyDownPressed()
+{
+  if ( history.cmd_count == 0) 
+          return;
+
+  DecCursor();
+  fillBuf();
+  printInput();
 }
 
 void
@@ -293,25 +320,11 @@ consoleintr(int (*getc)(void))
       break;
     
     case (KEY_UP) :
-      if ( history.mem_count == 0) 
-          break;
-
-      killLine();
-      fillBuf();    
-      IncCursor();
-      printInput();
-
+      KeyUpPressed();
       break;
     
     case (KEY_DN) :
-      if ( history.mem_count == 0) 
-          break;
-
-      killLine();
-      DecCursor();
-      fillBuf();    
-      printInput();
-      
+      KeyDownPressed();
       break;
     default:
       if(c != 0 && input.e-input.r < INPUT_BUF){
@@ -319,8 +332,11 @@ consoleintr(int (*getc)(void))
         input.buf[input.e++ % INPUT_BUF] = c;
         consputc(c);
         if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){
-          InsertNewCmd();
-          history.mem_count++;
+          if ( (input.e - input.w) != 1) {
+            InsertNewCmd();
+            history.cmd_count++;
+            history.cursor = -1;
+          }
           input.w = input.e;
           wakeup(&input.r);
         }
