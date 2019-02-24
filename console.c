@@ -259,10 +259,9 @@ IncCursor()
 void
 DecCursor()
 {
-  if ( history.cursor <= 0){
-      history.cursor = 0;
+  if ( history.cursor < 0)
       return;
-      }
+      
   history.cursor = history.cursor - 1;
 }
 
@@ -292,6 +291,11 @@ KeyDownPressed()
 {
   if ( history.cmd_count == 0) 
           return;
+
+if (history.cursor == -1){
+  killLine();
+  return;
+  }
 
   DecCursor();
   fillBuf();

@@ -1159,25 +1159,22 @@ consolewrite(struct inode *ip, char *buf, int n)
 801009cc:	8d 74 26 00          	lea    0x0(%esi,%eiz,1),%esi
 
 801009d0 <DecCursor>:
-  if ( history.cursor <= 0){
-801009d0:	8b 15 38 a5 10 80    	mov    0x8010a538,%edx
+  if ( history.cursor < 0)
+801009d0:	a1 38 a5 10 80       	mov    0x8010a538,%eax
 {
-801009d6:	55                   	push   %ebp
-      history.cursor = 0;
-801009d7:	b8 00 00 00 00       	mov    $0x0,%eax
-{
-801009dc:	89 e5                	mov    %esp,%ebp
-      history.cursor = 0;
-801009de:	8d 4a ff             	lea    -0x1(%edx),%ecx
-801009e1:	85 d2                	test   %edx,%edx
+801009d5:	55                   	push   %ebp
+801009d6:	89 e5                	mov    %esp,%ebp
+  if ( history.cursor < 0)
+801009d8:	85 c0                	test   %eax,%eax
+801009da:	78 08                	js     801009e4 <DecCursor+0x14>
+  history.cursor = history.cursor - 1;
+801009dc:	83 e8 01             	sub    $0x1,%eax
+801009df:	a3 38 a5 10 80       	mov    %eax,0x8010a538
 }
-801009e3:	5d                   	pop    %ebp
-      history.cursor = 0;
-801009e4:	0f 4f c1             	cmovg  %ecx,%eax
-801009e7:	a3 38 a5 10 80       	mov    %eax,0x8010a538
-}
-801009ec:	c3                   	ret    
-801009ed:	8d 76 00             	lea    0x0(%esi),%esi
+801009e4:	5d                   	pop    %ebp
+801009e5:	c3                   	ret    
+801009e6:	8d 76 00             	lea    0x0(%esi),%esi
+801009e9:	8d bc 27 00 00 00 00 	lea    0x0(%edi,%eiz,1),%edi
 
 801009f0 <printInput>:
 {
@@ -1212,28 +1209,30 @@ consolewrite(struct inode *ip, char *buf, int n)
 80100a2a:	8d bf 00 00 00 00    	lea    0x0(%edi),%edi
 
 80100a30 <KeyDownPressed.part.0>:
+if (history.cursor == -1){
+80100a30:	a1 38 a5 10 80       	mov    0x8010a538,%eax
+80100a35:	83 f8 ff             	cmp    $0xffffffff,%eax
+80100a38:	74 1e                	je     80100a58 <KeyDownPressed.part.0+0x28>
 KeyDownPressed()
-80100a30:	55                   	push   %ebp
-      history.cursor = 0;
-80100a31:	b8 00 00 00 00       	mov    $0x0,%eax
-KeyDownPressed()
-80100a36:	89 e5                	mov    %esp,%ebp
-80100a38:	83 ec 08             	sub    $0x8,%esp
-  if ( history.cursor <= 0){
-80100a3b:	8b 15 38 a5 10 80    	mov    0x8010a538,%edx
-      history.cursor = 0;
-80100a41:	8d 4a ff             	lea    -0x1(%edx),%ecx
-80100a44:	85 d2                	test   %edx,%edx
-80100a46:	0f 4f c1             	cmovg  %ecx,%eax
-80100a49:	a3 38 a5 10 80       	mov    %eax,0x8010a538
+80100a3a:	55                   	push   %ebp
+80100a3b:	89 e5                	mov    %esp,%ebp
+80100a3d:	83 ec 08             	sub    $0x8,%esp
+  if ( history.cursor < 0)
+80100a40:	85 c0                	test   %eax,%eax
+80100a42:	78 08                	js     80100a4c <KeyDownPressed.part.0+0x1c>
+  history.cursor = history.cursor - 1;
+80100a44:	83 e8 01             	sub    $0x1,%eax
+80100a47:	a3 38 a5 10 80       	mov    %eax,0x8010a538
   fillBuf();
-80100a4e:	e8 dd fe ff ff       	call   80100930 <fillBuf>
+80100a4c:	e8 df fe ff ff       	call   80100930 <fillBuf>
 }
-80100a53:	c9                   	leave  
+80100a51:	c9                   	leave  
   printInput();
-80100a54:	eb 9a                	jmp    801009f0 <printInput>
-80100a56:	8d 76 00             	lea    0x0(%esi),%esi
-80100a59:	8d bc 27 00 00 00 00 	lea    0x0(%edi,%eiz,1),%edi
+80100a52:	eb 9c                	jmp    801009f0 <printInput>
+80100a54:	8d 74 26 00          	lea    0x0(%esi,%eiz,1),%esi
+  killLine();
+80100a58:	e9 63 fe ff ff       	jmp    801008c0 <killLine>
+80100a5d:	8d 76 00             	lea    0x0(%esi),%esi
 
 80100a60 <KeyUpPressed>:
 {
